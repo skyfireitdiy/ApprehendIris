@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>PlainTextInput</class>
- <widget class="QDialog" name="PlainTextInput">
+ <class>PlainTextShow</class>
+ <widget class="QDialog" name="PlainTextShow">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>171</height>
+    <width>938</width>
+    <height>598</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,7 +15,11 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QPlainTextEdit" name="plain_input"/>
+    <widget class="QPlainTextEdit" name="plain_content">
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+    </widget>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
@@ -34,7 +38,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>PlainTextInput</receiver>
+   <receiver>PlainTextShow</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -50,7 +54,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>PlainTextInput</receiver>
+   <receiver>PlainTextShow</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

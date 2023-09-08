@@ -1,78 +1,174 @@
 from UI.AppUI import Ui_App
-from PyQt6.QtWidgets import QFileDialog, QDialog, QMessageBox, QPushButton, QTableWidgetItem, QAbstractItemView, QApplication
-from PyQt6.QtCore import QLocale
-from TextDocument import TextDocument
-from DocDocument import DocDocument
-from PdfDocument import PdfDocument
-from UrlDocument import UrlDocument
-from PlainTextDocument import PlainTextDocument
+from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QPushButton, QTableWidgetItem, QHBoxLayout, QWidget, QRadioButton
+from PyQt6.QtCore import pyqtSignal
 from UI.LineInput import GetLineInput
 from UI.PlainTextInput import GetPlainTextInput
-from Spark.SparkLLM import Spark
-from ApprehendIrisService import ApprehendIrisService
-from NLPService import NLPService
-import pickle
+from TFIDFService import TFIDFService
+from BERTService import BERTService
+from Spark.SparkUI import SpackUI
+from UI.PlainTextShow import PlainTextShow
+from FileDataSource.FileDataSource import FileDataSource
+from UrlDataSource.UrlDataSource import UrlDataSource
+from PlainTextDataSource.PlainTextDataSource import PlainTextDataSource
+import json
+import threading
 
-class App(QDialog):
+
+class App(QMainWindow):
+
+    log_message_sent = pyqtSignal(str)
+    progress_sent = pyqtSignal(int)
+    output_sent = pyqtSignal(str)
+    result_sent = pyqtSignal(str)
+    extdata_sent = pyqtSignal(str)
+
     def __init__(self, parent=None):
-        super(QDialog, self).__init__(parent)
+        super(QMainWindow, self).__init__(parent)
         self.ui = Ui_App()
         self.ui.setupUi(self)
 
-        self.data_source = []
-        self.llm_config = {}
+        self.ui.tbl_data_source.setColumnCount(4)
+        self.ui.tbl_data_source.setHorizontalHeaderLabels(
+            ["ID", "数据源", "数据", "操作"])
 
+        self.ui.btn_send.clicked.connect(self.Send)
+        self.ui.btn_save_config.clicked.connect(self.Save)
+        self.ui.btn_load_config.clicked.connect(self.Load)
+        self.ui.plain_exttext.textChanged.connect(self.UpdateTextOnUi)
+        self.ui.btn_model_config.clicked.connect(self.ModelConfig)
+        self.ui.btn_del_node.clicked.connect(self.DeleteLastNode)
+        self.ui.btn_choose_model.clicked.connect(self.ChooseModel)
+        self.ui.check_to_exttext.clicked.connect(self.SetAppendResultToExt)
+        self.ui.btn_clear_log.clicked.connect(self.ui.plain_log.clear)
+        self.ui.btn_add_document.clicked.connect(self.AddDocument)
+
+        self.progress_sent.connect(self.ui.progress_bar.setValue)
+        self.log_message_sent.connect(self.ui.plain_log.append)
+        self.output_sent.connect(self.ui.plain_result.append)
+        self.extdata_sent.connect(self.ui.plain_exttext.appendPlainText)
+        self.result_sent.connect(self.HandleResult)
+
+        self.documents = []
+        self.models = {}
+        self.models_check = {}
+        self.config = {
+            "Models": {},
+            "Chain": [],
+            "AppendResultToExt": True
+        }
+
+        self.data_sources = {}
+        self.data_sources_check = {}
+
+        self.current_model = ""
+        self.current_data_source = ""
         self.text_data = ""
 
-        self.ui.tbl_data_source.setColumnCount(4)
-        self.ui.tbl_data_source.setHorizontalHeaderLabels(["ID" ,"数据源", "数据", "操作"])
+        self.AddModel("Spark", SpackUI())
 
-        self.ui.btn_file.clicked.connect(self.ChooseFile)
-        self.ui.btn_url.clicked.connect(self.AddUrl)
-        self.ui.btn_plaintext.clicked.connect(self.AddPlainText)
-        self.ui.btn_send.clicked.connect(self.Send)
-        self.ui.btn_save.clicked.connect(self.Save)
-        self.ui.btn_load.clicked.connect(self.Load)
-        self.ui.plain_exttext.textChanged.connect(self.UpdateTextOnUi)
+        tfidf_service = TFIDFService()
+        tfidf_service.SetLogger(self.log_message_sent.emit)
+        tfidf_service.SetProgressCallback(self.progress_sent.emit)
+        self.AddModel("TF-IDF", tfidf_service)
 
-    def AddPlainText(self):
-        text, result = GetPlainTextInput("输入", "请输入文本")
-        if not result:
+        bert_service = BERTService()
+        bert_service.SetLogger(self.log_message_sent.emit)
+        bert_service.SetProgressCallback(self.progress_sent.emit)
+        self.AddModel("BERT", bert_service)
+
+        self.AddDataSource("文件", FileDataSource())
+        self.AddDataSource("URL", UrlDataSource())
+        self.AddDataSource("纯文本", PlainTextDataSource())
+
+        self.UpdateModelToUI()
+
+    def HandleResult(self, result):
+        self.ui.btn_send.setEnabled(True)
+
+    def SetAppendResultToExt(self, x):
+        self.config["AppendResultToExt"] = x
+
+    def ChooseModel(self):
+        if self.current_model == "":
+            self.ShowErrorMessage("未选择模型")
             return
-        if not text:
-            self.ShowErrorMessage("请输入文本")
+        if not self.models[self.current_model].Configed():
+            self.ShowErrorMessage("模型未配置")
             return
-        self.data_source.append(PlainTextDocument(text))
-        self.UpdateTextOnUi()
+        self.config["Chain"].append(self.current_model)
+        self.UpdateModelToUI()
 
-    def AddFile(self, file_path):
-        if file_path.endswith('.txt'):
-            self.data_source.append(TextDocument(file_path))
-        elif file_path.endswith('.docx'):
-            self.data_source.append(DocDocument(file_path))
-        elif file_path.endswith('.pdf'):
-            self.data_source.append(PdfDocument(file_path))
-        else:
-            self.ShowErrorMessage("不支持的文件格式")
-        self.UpdateTextOnUi()
+    def DeleteLastNode(self):
+        if len(self.config["Chain"]) > 0:
+            self.config["Chain"].pop()
+            self.UpdateModelToUI()
 
-    def AddUrl(self):
-        url, result = GetLineInput("输入", "URL", "请输入url")
-        if not result:
+    def ModelConfig(self):
+        if not self.current_model:
+            self.ShowErrorMessage("未选择模型")
             return
-        if not url:
-            self.ShowErrorMessage("请输入URL")
+        c = self.models[self.current_model].GetConfig()
+        if c:
+            self.config["Models"][self.current_model] = c
+            self.SetConfigToModel()
+            self.UpdateModelToUI()
+
+    def AddDocument(self):
+        if not self.current_data_source:
+            self.ShowErrorMessage("未选择数据源")
             return
-        self.data_source.append(UrlDocument(url))
-        self.UpdateTextOnUi()
+        c = self.data_sources[self.current_data_source].CreateDocument()
+        if c:
+            self.documents.append(c)
+            self.UpdateTextOnUi()
 
+    def SetConfigToModel(self):
+        for name, cfg in self.config["Models"].items():
+            if name in self.models:
+                self.models[name].SetConfig(cfg)
 
-    def RemoveDataSource(self, file_id):
-        for document in self.data_source:
+    def AddDataSource(self, name, data_source):
+        self.data_sources[name] = data_source
+        check = QRadioButton(name)
+
+        def set_current():
+            nonlocal check
+            nonlocal name
+            if check.isChecked():
+                self.current_data_source = name
+        check.clicked.connect(set_current)
+        self.data_sources_check[name] = check
+        self.ui.layout_data_source.addWidget(check)
+        self.UpdateModelToUI()
+
+    def AddModel(self, name, llm):
+        self.models[name] = llm
+        check = QRadioButton(name)
+
+        def set_current():
+            nonlocal check
+            nonlocal name
+            if check.isChecked():
+                self.current_model = name
+        check.clicked.connect(set_current)
+        self.models_check[name] = check
+        self.ui.layout_models.addWidget(check)
+        self.UpdateModelToUI()
+
+    def UpdateModelToUI(self):
+        for name, model in self.models.items():
+            self.models_check[name].setText(
+                name+"("+model.Description()+")(已配置)" if model.Configed() else name+"(未配置)")
+
+        self.ui.lab_chain.setText('->'.join(self.config["Chain"]))
+        self.ui.check_to_exttext.setChecked(self.config["AppendResultToExt"])
+
+    def RemoveDocument(self, file_id):
+        for document in self.documents:
             if document.ID() == file_id:
                 if not self.ShowConfirmationDialog(f"确认删除{file_id}？"):
                     return
-                self.data_source.remove(document)
+                self.documents.remove(document)
                 self.UpdateTextOnUi()
                 return
         self.ShowErrorMessage(f"未找到数据源{file_id}")
@@ -81,113 +177,110 @@ class App(QDialog):
         self.text_data = ""
 
         self.ui.tbl_data_source.setRowCount(0)
-        for document in self.data_source:
-            self.ui.tbl_data_source.setRowCount(self.ui.tbl_data_source.rowCount() + 1)
-            self.ui.tbl_data_source.setItem(self.ui.tbl_data_source.rowCount() - 1, 0, 
-                QTableWidgetItem(document.ID()))
-            self.ui.tbl_data_source.setItem(self.ui.tbl_data_source.rowCount() - 1, 1, 
-                QTableWidgetItem(document.Name()))
+        for document in self.documents:
+            self.ui.tbl_data_source.setRowCount(
+                self.ui.tbl_data_source.rowCount() + 1)
+            self.ui.tbl_data_source.setItem(self.ui.tbl_data_source.rowCount() - 1, 0,
+                                            QTableWidgetItem(document.ID()))
+            self.ui.tbl_data_source.setItem(self.ui.tbl_data_source.rowCount() - 1, 1,
+                                            QTableWidgetItem(document.Name()))
             tmp_text = document.GetText()
             self.text_data += tmp_text + "\n"
-            self.ui.tbl_data_source.setItem(self.ui.tbl_data_source.rowCount() - 1, 2, 
+            self.ui.tbl_data_source.setItem(self.ui.tbl_data_source.rowCount() - 1, 2,
                                             QTableWidgetItem(tmp_text if len(tmp_text) < 16 else tmp_text[:16] + "..."))
-            btn = QPushButton("删除")
-            btn.clicked.connect(lambda: self.RemoveDataSource(document.ID()))
-            self.ui.tbl_data_source.setCellWidget(self.ui.tbl_data_source.rowCount() - 1, 3, 
-                btn)
+
+            wgt = QWidget()
+            btn_show = QPushButton("查看")
+            btn_remove = QPushButton("删除")
+
+            def ShowContent(content):
+                def inner():
+                    PlainTextShow(content).exec()
+                return inner
+
+            def RemoveItem(self, id):
+                def inner():
+                    self.RemoveDataSource(id)
+                return inner
+            btn_show.clicked.connect(ShowContent(tmp_text))
+            btn_remove.clicked.connect(RemoveItem(self, document.ID()))
+            layout = QHBoxLayout()
+            layout.addWidget(btn_show)
+            layout.addWidget(btn_remove)
+            wgt.setLayout(layout)
+            self.ui.tbl_data_source.setCellWidget(self.ui.tbl_data_source.rowCount() - 1, 3,
+                                                  wgt)
+        self.ui.tbl_data_source.resizeRowsToContents()
 
         self.text_data += self.ui.plain_exttext.toPlainText()
 
     def ChooseFile(self):
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
-        file_dialog.setNameFilters(["文本文件(*.txt)", "PDF文件(*.pdf)", "Word文件(*.docx)"])
+        file_dialog.setNameFilters(
+            ["文本文件(*.txt)", "PDF文件(*.pdf)", "Word文件(*.docx)"])
         file_dialog.setViewMode(QFileDialog.ViewMode.Detail)
-        
+
         if file_dialog.exec():
             selected_files = file_dialog.selectedFiles()[0]
             self.AddFile(selected_files)
 
-    def ShowConfirmationDialog(self, tip)->bool:
-        return QMessageBox.question(self, "确认", tip , QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes
+    def ShowConfirmationDialog(self, tip) -> bool:
+        return QMessageBox.question(self, "确认", tip, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes
 
     def ShowErrorMessage(self, message):
-        QMessageBox.critical(self, "错误",message) 
+        QMessageBox.critical(self, "错误", message)
 
     def ShowInfoMessage(self, message):
-        QMessageBox.information(self, "信息", message) 
+        QMessageBox.information(self, "信息", message)
 
-    def CheckValid(self)->bool:
+    def CheckValid(self) -> bool:
         if self.ui.plain_input.toPlainText() == "":
             self.ShowErrorMessage("没有输入问题")
             return False
-        if self.text_data == "":
-            self.ShowErrorMessage("没有数据源")
-            return False
-        if self.ui.radio_spark.isChecked() and self.ui.ledt_api_secret.text() == "" or self.ui.ledt_api_key.text() == "" or self.ui.ledt_appid.text() == "":
-            self.ShowErrorMessage("没有输入Spark认证信息")
+        if len(self.config["Chain"]) == 0:
+            self.ShowErrorMessage("没有选择模型")
             return False
 
         return True
 
-    def GetSparkConfig(self)->dict:
-        return {
-            "api_secret": self.ui.ledt_api_secret.text(),
-            "api_key": self.ui.ledt_api_key.text(),
-            "appid": self.ui.ledt_appid.text()
-        }
-
-    def RestoreSparkConfig(self, data):
-        self.ui.ledt_api_secret.setText(data["api_secret"])
-        self.ui.ledt_api_key.setText(data["api_key"])
-        self.ui.ledt_appid.setText(data["appid"])
-
-
     def Save(self):
-        if 'Spark' not in self.llm_config.keys():
-            self.llm_config['Spark'] = self.GetSparkConfig()
         file_dialog = QFileDialog()
         file_dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
         if file_dialog.exec():
             selected_file = file_dialog.selectedFiles()[0]
-            with open(selected_file, "wb") as fp:
-                pickle.dump(self.llm_config, fp)
+            with open(selected_file, "w") as fp:
+                json.dump(self.config, fp, indent=4)
+                self.ShowInfoMessage("保存成功")
 
     def Load(self):
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
         file_dialog.setViewMode(QFileDialog.ViewMode.Detail)
-        
+
         if file_dialog.exec():
             selected_file = file_dialog.selectedFiles()[0]
-            with open(selected_file, "rb") as fp:
-                self.llm_config = pickle.load(fp)
-                if 'Spark' in self.llm_config.keys():
-                    data = self.llm_config['Spark']
-                    self.RestoreSparkConfig(data)
-            
-    def MakeKeySentenceInfo(self, sts)->str:
-        ret = ""
-        for i,s in enumerate(sts):
-            ret += f"序号{i}. 相关度：{s[0]} 位置：({s[2][0]},{s[2][1]})\n{s[1]}\n"
-        return ret
+            with open(selected_file, "r") as fp:
+                self.config = json.load(fp)
+                self.SetConfigToModel()
+                self.UpdateModelToUI()
+                self.ShowInfoMessage("加载成功")
+
+    def Run(self, data):
+        question = data[1]
+        for name in self.config["Chain"]:
+            data = self.models[name].Chat(data)
+            self.output_sent.emit(
+                name+":\n" + "\n".join(data)+"\n==================\n")
+        if self.config["AppendResultToExt"]:
+            self.extdata_sent.emit(question+"\n"+'\n'.join(data)+"\n")
+        self.result_sent.emit(''.join(data))
 
     def Send(self):
         if not self.CheckValid():
             return
-        if self.ui.radio_spark.isChecked():
-            llm = Spark(self.ui.ledt_appid.text(), self.ui.ledt_api_secret.text(), self.ui.ledt_api_key.text())
-        else:
-            self.ShowErrorMessage("没有合适的LLM")
-            return
-        #  nlp_service = NLPService(0, 5, 10, 'BERT', False)
-        nlp_service = NLPService()
-        question = self.ui.plain_input.toPlainText()
-        sts = nlp_service.GetKeySentences(self.text_data, question)
-        self.ui.plain_preview.setPlainText(self.MakeKeySentenceInfo(sts))
+        self.ui.btn_send.setEnabled(False)
+        data = [self.text_data, self.ui.plain_input.toPlainText()]
+        self.ui.plain_result.clear()
         self.ui.plain_input.clear()
-        self.ui.palin_result.appendPlainText("问题：" + question + "\n")
-        answer = ApprehendIrisService.Ask(llm, sts, question)
-        self.ui.palin_result.appendPlainText("AI:\n" + answer + "\n")
-
-
+        threading.Thread(target=self.Run, args=[data], daemon=True).start()

@@ -1,8 +1,9 @@
 from Document import Document, DocumentType
 import PyPDF2
 
+
 class PdfDocument(Document):
-    def __init__(self,pdf_file_path):
+    def __init__(self, pdf_file_path):
         super().__init__(DocumentType.Pdf)
         self._pdf_file_path = pdf_file_path
 
@@ -13,3 +14,6 @@ class PdfDocument(Document):
         for page in reader.pages:
             text.append(page.extract_text())
         return '\n'.join(text)
+
+    def Name(self):
+        return self._pdf_file_path

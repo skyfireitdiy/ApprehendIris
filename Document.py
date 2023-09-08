@@ -19,6 +19,10 @@ class Document(Entity):
             self._cache = self.Read()
         return self._cache
 
+    def ForceGetText(self)->str:
+        self._cache = ""
+        return self.GetText()
+
     def Name(self)->str:
         return ""
 

@@ -14,6 +14,7 @@ from wsgiref.handlers import format_date_time
 import websocket  # 使用websocket_client
 answer = ""
 
+
 class Ws_Param(object):
     # 初始化
     def __init__(self, APPID, APIKey, APISecret, Spark_url):
@@ -39,11 +40,13 @@ class Ws_Param(object):
         signature_sha = hmac.new(self.APISecret.encode('utf-8'), signature_origin.encode('utf-8'),
                                  digestmod=hashlib.sha256).digest()
 
-        signature_sha_base64 = base64.b64encode(signature_sha).decode(encoding='utf-8')
+        signature_sha_base64 = base64.b64encode(
+            signature_sha).decode(encoding='utf-8')
 
         authorization_origin = f'api_key="{self.APIKey}", algorithm="hmac-sha256", headers="host date request-line", signature="{signature_sha_base64}"'
 
-        authorization = base64.b64encode(authorization_origin.encode('utf-8')).decode(encoding='utf-8')
+        authorization = base64.b64encode(
+            authorization_origin.encode('utf-8')).decode(encoding='utf-8')
 
         # 将请求的鉴权参数组合为字典
         v = {
@@ -63,7 +66,7 @@ def on_error(ws, error):
 
 
 # 收到websocket关闭的处理
-def on_close(ws,one,two):
+def on_close(ws, one, two):
     print(" ")
 
 
@@ -73,14 +76,15 @@ def on_open(ws):
 
 
 def run(ws, *args):
-    data = json.dumps(gen_params(appid=ws.appid, domain= ws.domain,question=ws.question))
+    data = json.dumps(gen_params(
+        appid=ws.appid, domain=ws.domain, question=ws.question))
     ws.send(data)
 
 
 # 收到websocket消息的处理
 
 
-def gen_params(appid, domain,question):
+def gen_params(appid, domain, question):
     """
     通过appid和用户的提问来生成请参数
     """
@@ -106,10 +110,11 @@ def gen_params(appid, domain,question):
     return data
 
 
-def Request(appid, api_key, api_secret, Spark_url,domain, question):
+def Request(appid, api_key, api_secret, Spark_url, domain, question):
     wsParam = Ws_Param(appid, api_key, api_secret, Spark_url)
     wsUrl = wsParam.create_url()
     answer = ""
+
     def on_message(ws, message):
         # print(message)
         data = json.loads(message)
@@ -126,11 +131,10 @@ def Request(appid, api_key, api_secret, Spark_url,domain, question):
             # print(1)
             if status == 2:
                 ws.close()
-    ws = websocket.WebSocketApp(wsUrl, on_message=on_message, on_error=on_error, on_close=on_close, on_open=on_open)
+    ws = websocket.WebSocketApp(
+        wsUrl, on_message=on_message, on_error=on_error, on_close=on_close, on_open=on_open)
     ws.appid = appid
     ws.question = question
     ws.domain = domain
     ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
     return answer
-
-

@@ -1,30 +1,17 @@
-import jieba
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from nltk.corpus import stopwords
-import nltk
-import snownlp
+from LLM import LLM
 
-from transformers import BertTokenizer, BertModel
-import torch
-from sklearn.metrics.pairwise import cosine_similarity
 
-class NLPService(object):
+class NLPService(LLM):
 
-    def __init__(self, up_segment=0, down_segment=10, top=5, model='TF-IDF', need_group=True):
+    def __init__(self, up_segment=0, down_segment=10, top=5, need_group=True):
+        super().__init__()
         self._up_segment = up_segment
         self._down_segment = down_segment
         self._top = top
         self._need_group = need_group
-        if model == 'TF-IDF':
-            self._ComputeCosineSimilarity = self._ComputeCosineSimilarityByTFIDF
-        elif model == 'BERT':
-            self._ComputeCosineSimilarity = self._ComputeCosineSimilarityByBERT
-        else:
-            raise ValueError('Invalid model')
 
     @staticmethod
-    def _GroupOverlappingSegments(segments:list):
+    def _GroupOverlappingSegments(segments: list):
         groups = []
         current_group = []
         segments.sort(key=lambda x: x[2][0])
@@ -43,74 +30,60 @@ class NLPService(object):
 
         if current_group:
             groups.append(current_group)
-        
+
         return groups
 
     @staticmethod
-    def _Sentences(text:str):
-        #  nlp = snownlp.SnowNLP(text)
-        #  return nlp.sentences
-        return [y for y in [x.strip() for x in text.splitlines()] if len(y)>0]
+    def _Sentences(text: str):
+        return [y for y in [x.strip() for x in text.splitlines()] if len(y) > 0]
 
-    def _Words(self, text):
-        try:
-            sw = stopwords.words('chinese')
-        except Exception as e:
-            nltk.download('stopwords')
-            sw = stopwords.words('chinese')
-        ws = list(jieba.cut(text, cut_all=False))
-        return [w for w in ws if w not in sw]
+    @staticmethod
+    def _MakeContext(sts) -> str:
+        if len(sts) == 0:
+            return None
+        return "\n".join([str(x)+'. '+y[1] for x, y in enumerate(sts)])
 
+    @staticmethod
+    def _MakePrompt(context: str, question: str) -> str:
+        prompt = context + "\n###\n请仅根据以上上下文推理以下问题的答案\n###\n" + question
+        return prompt
 
-    def _ComputeCosineSimilarityByTFIDF(self, text1, text2):
-        # 去除停用词
-        seg1_filtered = ' '.join(self._Words(text1))
-        seg2_filtered = ' '.join(self._Words(text2))
+    def ComputeCosineSimilarity(self, text1, text2):
+        raise NotImplementedError("this method is not implemented")
 
-        # 使用TF-IDF向量化文本
-        vectorizer = TfidfVectorizer()
-        vectors = vectorizer.fit_transform([seg1_filtered, seg2_filtered])
-
-        # 计算余弦相似度
-        similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
-        return similarity
-
-    def _ComputeCosineSimilarityByBERT(self, text1, text2):
-        tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
-        model = BertModel.from_pretrained('bert-base-chinese')
-
-        inputs = tokenizer([text1, text2], padding=True, truncation=True, return_tensors='pt')
-        input_ids = inputs['input_ids']
-        attention_mask = inputs['attention_mask']
-
-        # 获取文本的表示
-        with torch.no_grad():
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-            embeddings = outputs.last_hidden_state[:, 0, :].cpu().numpy()  # 提取CLS标记的表示
-
-        # 计算余弦相似度
-        similarity = cosine_similarity(embeddings)[0, 1]
-        return similarity
-
-    def GetKeySentences(self, text, question:str):
+    def Chat(self, messages):
+        if len(messages) != 2:
+            return messages
+        text = messages[0]
+        question = messages[1]
         sts = NLPService._Sentences(text)
-        ret = []
-        for i,s in enumerate(sts):
-            left = i-self._up_segment if i-self._up_segment>0 else 0
-            right = i+self._down_segment+1 if i+self._down_segment+1<len(sts) else len(sts)
-            t = '\n'.join(sts[left : right])
-            rate = self._ComputeCosineSimilarity(t, question)
-            print(f"{rate} {t}")
+        key_sts = []
+        for i, s in enumerate(sts):
+            self.Progress(int(i/len(sts)*100))
+            left = i-self._up_segment if i-self._up_segment > 0 else 0
+            right = i+self._down_segment+1 if i + \
+                self._down_segment+1 < len(sts) else len(sts)
+            t = '\n'.join(sts[left: right])
+            rate = self.ComputeCosineSimilarity(t, question)
+            self.Log(f"关联度：{rate}\n内容： {t}\n--------------------------------\n")
             if rate == 0:
                 continue
-            ret.append((rate, t , (left, right)))
+            key_sts.append((rate, t, (left, right)))
+        self.Progress(100)
 
         if self._need_group:
-            ret = self._GroupOverlappingSegments(ret)
-            ret = [sorted(x, key=lambda t:t[0], reverse=True)[0] for x in ret]
+            key_sts = self._GroupOverlappingSegments(key_sts)
+            key_sts = [sorted(x, key=lambda t: t[0], reverse=True)[0]
+                       for x in key_sts]
 
-        ret.sort(key=lambda x: x[0], reverse=True)
-        if len(ret) > self._top:
-            return ret[:self._top]
-        return ret
+        key_sts.sort(key=lambda x: x[0], reverse=True)
+        if len(key_sts) > self._top:
+            key_sts = key_sts[:self._top]
+        context = NLPService._MakeContext(key_sts)
+        if context is None:
+            return "从文中没找到这个问题的答案"
+        prompt = NLPService._MakePrompt(context, question)
+        return [prompt]
 
+    def Description(self):
+        return "NLP"
