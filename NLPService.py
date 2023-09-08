@@ -1,9 +1,9 @@
 from LLM import LLM
-
+from snownlp import SnowNLP
 
 class NLPService(LLM):
 
-    def __init__(self, up_segment=0, down_segment=10, top=5, need_group=True):
+    def __init__(self, up_segment, down_segment, top, need_group=True):
         super().__init__()
         self._up_segment = up_segment
         self._down_segment = down_segment
@@ -35,7 +35,7 @@ class NLPService(LLM):
 
     @staticmethod
     def _Sentences(text: str):
-        return [y for y in [x.strip() for x in text.splitlines()] if len(y) > 0]
+        return SnowNLP(text).sentences
 
     @staticmethod
     def _MakeContext(sts) -> str:
@@ -62,8 +62,8 @@ class NLPService(LLM):
             self.Progress(int(i/len(sts)*100))
             left = i-self._up_segment if i-self._up_segment > 0 else 0
             right = i+self._down_segment+1 if i + \
-                self._down_segment+1 < len(sts) else len(sts)
-            t = '\n'.join(sts[left: right])
+                    self._down_segment+1 < len(sts) else len(sts)
+            t = ' '.join(sts[left: right])
             rate = self.ComputeCosineSimilarity(t, question)
             self.Log(f"关联度：{rate}\n内容： {t}\n--------------------------------\n")
             if rate == 0:
@@ -81,7 +81,7 @@ class NLPService(LLM):
             key_sts = key_sts[:self._top]
         context = NLPService._MakeContext(key_sts)
         if context is None:
-            return "从文中没找到这个问题的答案"
+            return None
         prompt = NLPService._MakePrompt(context, question)
         return [prompt]
 

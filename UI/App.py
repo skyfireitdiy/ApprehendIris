@@ -4,7 +4,6 @@ from PyQt6.QtCore import pyqtSignal
 from UI.LineInput import GetLineInput
 from UI.PlainTextInput import GetPlainTextInput
 from TFIDFService import TFIDFService
-from BERTService import BERTService
 from Spark.SparkUI import SpackUI
 from UI.PlainTextShow import PlainTextShow
 from FileDataSource.FileDataSource import FileDataSource
@@ -29,7 +28,7 @@ class App(QMainWindow):
 
         self.ui.tbl_data_source.setColumnCount(4)
         self.ui.tbl_data_source.setHorizontalHeaderLabels(
-            ["ID", "数据源", "数据", "操作"])
+                ["ID", "数据源", "数据", "操作"])
 
         self.ui.btn_send.clicked.connect(self.Send)
         self.ui.btn_save_config.clicked.connect(self.Save)
@@ -52,10 +51,10 @@ class App(QMainWindow):
         self.models = {}
         self.models_check = {}
         self.config = {
-            "Models": {},
-            "Chain": [],
-            "AppendResultToExt": True
-        }
+                "Models": {},
+                "Chain": [],
+                "AppendResultToExt": True
+                }
 
         self.data_sources = {}
         self.data_sources_check = {}
@@ -71,10 +70,6 @@ class App(QMainWindow):
         tfidf_service.SetProgressCallback(self.progress_sent.emit)
         self.AddModel("TF-IDF", tfidf_service)
 
-        bert_service = BERTService()
-        bert_service.SetLogger(self.log_message_sent.emit)
-        bert_service.SetProgressCallback(self.progress_sent.emit)
-        self.AddModel("BERT", bert_service)
 
         self.AddDataSource("文件", FileDataSource())
         self.AddDataSource("URL", UrlDataSource())
@@ -158,7 +153,7 @@ class App(QMainWindow):
     def UpdateModelToUI(self):
         for name, model in self.models.items():
             self.models_check[name].setText(
-                name+"("+model.Description()+")(已配置)" if model.Configed() else name+"("+model.Description()+")(未配置)")
+                    name+"("+model.Description()+")(已配置)" if model.Configed() else name+"("+model.Description()+")(未配置)")
 
         self.ui.lab_chain.setText('->'.join(self.config["Chain"]))
         self.ui.check_to_exttext.setChecked(self.config["AppendResultToExt"])
@@ -179,7 +174,7 @@ class App(QMainWindow):
         self.ui.tbl_data_source.setRowCount(0)
         for document in self.documents:
             self.ui.tbl_data_source.setRowCount(
-                self.ui.tbl_data_source.rowCount() + 1)
+                    self.ui.tbl_data_source.rowCount() + 1)
             self.ui.tbl_data_source.setItem(self.ui.tbl_data_source.rowCount() - 1, 0,
                                             QTableWidgetItem(document.ID()))
             self.ui.tbl_data_source.setItem(self.ui.tbl_data_source.rowCount() - 1, 1,
@@ -200,7 +195,7 @@ class App(QMainWindow):
 
             def RemoveItem(self, id):
                 def inner():
-                    self.RemoveDataSource(id)
+                    self.RemoveDocument(id)
                 return inner
             btn_show.clicked.connect(ShowContent(tmp_text))
             btn_remove.clicked.connect(RemoveItem(self, document.ID()))
@@ -218,7 +213,7 @@ class App(QMainWindow):
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
         file_dialog.setNameFilters(
-            ["文本文件(*.txt)", "PDF文件(*.pdf)", "Word文件(*.docx)"])
+                ["文本文件(*.txt)", "PDF文件(*.pdf)", "Word文件(*.docx)"])
         file_dialog.setViewMode(QFileDialog.ViewMode.Detail)
 
         if file_dialog.exec():
@@ -270,11 +265,14 @@ class App(QMainWindow):
         question = data[1]
         for name in self.config["Chain"]:
             data = self.models[name].Chat(data)
-            self.output_sent.emit(
-                name+":\n" + "\n".join(data)+"\n==================\n")
+            if data is None:
+                break
+            return
+        self.output_sent.emit(
+                name+":\n" + "\n".join(data)+"\n==================\n" if data is not None else "没有找到答案")
         if self.config["AppendResultToExt"]:
-            self.extdata_sent.emit(question+"\n"+'\n'.join(data)+"\n")
-        self.result_sent.emit(''.join(data))
+            self.extdata_sent.emit(question+"\n"+'\n'.join(data)+"\n" if data is not None else "没有找到答案")
+        self.result_sent.emit(''.join(data) if data is not None else "没有找到答案")
 
     def Send(self):
         if not self.CheckValid():

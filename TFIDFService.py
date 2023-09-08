@@ -4,12 +4,13 @@ from nltk.corpus import stopwords
 import nltk
 import jieba
 
+
 from NLPService import NLPService
 
 
 class TFIDFService(NLPService):
     def __init__(self):
-        super().__init__(0, 10, 5, True)
+        super().__init__(0, 50, 10, True)
 
     def _Words(self, text):
         try:
