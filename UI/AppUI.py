@@ -54,6 +54,8 @@ class Ui_App(object):
         self.plain_exttext.setObjectName("plain_exttext")
         self.verticalLayout_13.addWidget(self.plain_exttext)
         self.verticalLayout_4.addWidget(self.groupBox_14)
+        self.verticalLayout_4.setStretch(1, 1)
+        self.verticalLayout_4.setStretch(2, 1)
         self.verticalLayout.addWidget(self.groupBox_13)
         self.groupBox_15 = QtWidgets.QGroupBox(parent=self.centralwidget)
         self.groupBox_15.setObjectName("groupBox_15")
