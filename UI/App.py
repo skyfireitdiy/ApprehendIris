@@ -158,7 +158,7 @@ class App(QMainWindow):
     def UpdateModelToUI(self):
         for name, model in self.models.items():
             self.models_check[name].setText(
-                name+"("+model.Description()+")(已配置)" if model.Configed() else name+"(未配置)")
+                name+"("+model.Description()+")(已配置)" if model.Configed() else name+"("+model.Description()+")(未配置)")
 
         self.ui.lab_chain.setText('->'.join(self.config["Chain"]))
         self.ui.check_to_exttext.setChecked(self.config["AppendResultToExt"])
