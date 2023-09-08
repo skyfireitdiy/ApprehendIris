@@ -11,8 +11,7 @@ class UrlDocument(Document):
         response = requests.get(self._url)
         html_content = response.text
         soup = BeautifulSoup(html_content, 'html.parser')
-        paragraphs = soup.find_all('p')
-        text = '\n'.join([p.text for p in paragraphs])
+        text = soup.get_text()
         return text
 
     def Name(self)->str:
