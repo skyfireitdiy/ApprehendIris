@@ -12,3 +12,6 @@ class PlainTextDataSource(DataSource):
         if text and ret:
             return PlainTextDocument(text)
         return None
+
+    def Configed(self):
+        return True

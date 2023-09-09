@@ -28,3 +28,6 @@ class FileDataSource(DataSource):
             else:
                 QMessageBox.critical(None, "错误", "不支持的文件格式")
         return None
+
+    def Configed(self):
+        return True

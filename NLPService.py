@@ -3,11 +3,11 @@ from snownlp import SnowNLP
 
 class NLPService(LLM):
 
-    def __init__(self, up_segment, down_segment, top, need_group=True):
+    def __init__(self, sts_count, top, step ,need_group=True):
         super().__init__()
-        self._up_segment = up_segment
-        self._down_segment = down_segment
+        self._sts_count = sts_count
         self._top = top
+        self._step = step
         self._need_group = need_group
 
     @staticmethod
@@ -58,11 +58,12 @@ class NLPService(LLM):
         question = messages[1]
         sts = NLPService._Sentences(text)
         key_sts = []
-        for i, s in enumerate(sts):
+        l = len(sts)
+        for i in range(0, l, self._step):
             self.Progress(int(i/len(sts)*100))
-            left = i-self._up_segment if i-self._up_segment > 0 else 0
-            right = i+self._down_segment+1 if i + \
-                    self._down_segment+1 < len(sts) else len(sts)
+            left = i
+            right = i+self._sts_count+1 if i + \
+                    self._sts_count+1 < len(sts) else len(sts)
             t = ' '.join(sts[left: right])
             rate = self.ComputeCosineSimilarity(t, question)
             self.Log(f"关联度：{rate}\n内容： {t}\n--------------------------------\n")

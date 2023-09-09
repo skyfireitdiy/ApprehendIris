@@ -13,3 +13,6 @@ class UrlDataSource(DataSource):
         if ret and url:
             return UrlDocument(url)
         return None
+        
+    def Configed(self):
+        return True

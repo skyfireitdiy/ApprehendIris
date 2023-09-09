@@ -1,14 +1,13 @@
 from UI.AppUI import Ui_App
 from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QPushButton, QTableWidgetItem, QHBoxLayout, QWidget, QRadioButton
 from PyQt6.QtCore import pyqtSignal
-from UI.LineInput import GetLineInput
-from UI.PlainTextInput import GetPlainTextInput
 from TFIDFService import TFIDFService
 from Spark.SparkUI import SpackUI
 from UI.PlainTextShow import PlainTextShow
 from FileDataSource.FileDataSource import FileDataSource
 from UrlDataSource.UrlDataSource import UrlDataSource
 from PlainTextDataSource.PlainTextDataSource import PlainTextDataSource
+from BrowserDataSource.BrowserDataSource import BrowserDataSource
 import json
 import threading
 
@@ -74,6 +73,7 @@ class App(QMainWindow):
         self.AddDataSource("文件", FileDataSource())
         self.AddDataSource("URL", UrlDataSource())
         self.AddDataSource("纯文本", PlainTextDataSource())
+        self.AddDataSource("浏览器", BrowserDataSource())
 
         self.UpdateModelToUI()
 
@@ -185,8 +185,14 @@ class App(QMainWindow):
                                             QTableWidgetItem(tmp_text if len(tmp_text) < 16 else tmp_text[:16] + "..."))
 
             wgt = QWidget()
+            btn_refresh=QPushButton("刷新")
             btn_show = QPushButton("查看")
             btn_remove = QPushButton("删除")
+
+            def Refresh(d):
+                def inner():
+                    d.ForceGetText()
+                return inner
 
             def ShowContent(content):
                 def inner():
@@ -197,9 +203,12 @@ class App(QMainWindow):
                 def inner():
                     self.RemoveDocument(id)
                 return inner
+
+            btn_refresh.clicked.connect(Refresh(document))
             btn_show.clicked.connect(ShowContent(tmp_text))
             btn_remove.clicked.connect(RemoveItem(self, document.ID()))
             layout = QHBoxLayout()
+            layout.addWidget(btn_refresh)
             layout.addWidget(btn_show)
             layout.addWidget(btn_remove)
             wgt.setLayout(layout)
@@ -267,7 +276,6 @@ class App(QMainWindow):
             data = self.models[name].Chat(data)
             if data is None:
                 break
-            return
         self.output_sent.emit(
                 name+":\n" + "\n".join(data)+"\n==================\n" if data is not None else "没有找到答案")
         if self.config["AppendResultToExt"]:
