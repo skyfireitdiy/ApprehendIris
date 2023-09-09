@@ -1,14 +1,14 @@
 from Document import Document
 
 
-class DataSource():
+class DataSource:
     def CreateDocument(self) -> Document:
         raise NotImplementedError("method not implemented")
 
     def SetConfig(self, config):
         return None
 
-    def Config(self):
+    def GetConfig(self):
         return None
 
     def Configed(self):

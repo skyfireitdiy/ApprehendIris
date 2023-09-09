@@ -51,6 +51,13 @@
               </widget>
              </item>
              <item>
+              <widget class="QPushButton" name="btn_config_data_source">
+               <property name="text">
+                <string>配置数据源</string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <spacer name="verticalSpacer">
                <property name="orientation">
                 <enum>Qt::Vertical</enum>

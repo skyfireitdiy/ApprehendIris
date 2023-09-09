@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'App.ui'
+# Form implementation generated from reading ui file 'UI/App.ui'
 #
 # Created by: PyQt6 UI code generator 6.5.2
 #
@@ -35,6 +35,9 @@ class Ui_App(object):
         self.btn_add_document = QtWidgets.QPushButton(parent=self.groupBox_13)
         self.btn_add_document.setObjectName("btn_add_document")
         self.verticalLayout_5.addWidget(self.btn_add_document)
+        self.btn_config_data_source = QtWidgets.QPushButton(parent=self.groupBox_13)
+        self.btn_config_data_source.setObjectName("btn_config_data_source")
+        self.verticalLayout_5.addWidget(self.btn_config_data_source)
         spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
         self.verticalLayout_5.addItem(spacerItem1)
         self.horizontalLayout_2.addLayout(self.verticalLayout_5)
@@ -154,6 +157,7 @@ class Ui_App(object):
         App.setWindowTitle(_translate("App", "Apprehend Iris"))
         self.groupBox_13.setTitle(_translate("App", "数据源"))
         self.btn_add_document.setText(_translate("App", "新增数据"))
+        self.btn_config_data_source.setText(_translate("App", "配置数据源"))
         self.groupBox_14.setTitle(_translate("App", "附加数据"))
         self.groupBox_15.setTitle(_translate("App", "模型列表"))
         self.btn_choose_model.setText(_translate("App", "选择模型"))

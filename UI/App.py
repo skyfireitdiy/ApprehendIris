@@ -32,13 +32,13 @@ class App(QMainWindow):
         self.ui.btn_send.clicked.connect(self.Send)
         self.ui.btn_save_config.clicked.connect(self.Save)
         self.ui.btn_load_config.clicked.connect(self.Load)
-        self.ui.plain_exttext.textChanged.connect(self.UpdateTextOnUi)
         self.ui.btn_model_config.clicked.connect(self.ModelConfig)
         self.ui.btn_del_node.clicked.connect(self.DeleteLastNode)
         self.ui.btn_choose_model.clicked.connect(self.ChooseModel)
         self.ui.check_to_exttext.clicked.connect(self.SetAppendResultToExt)
         self.ui.btn_clear_log.clicked.connect(self.ui.plain_log.clear)
         self.ui.btn_add_document.clicked.connect(self.AddDocument)
+        self.ui.btn_config_data_source.clicked.connect(self.DataSourceConfig)
 
         self.progress_sent.connect(self.ui.progress_bar.setValue)
         self.log_message_sent.connect(self.ui.plain_log.append)
@@ -51,6 +51,7 @@ class App(QMainWindow):
         self.models_check = {}
         self.config = {
                 "Models": {},
+                "DataSource": {},
                 "Chain": [],
                 "AppendResultToExt": True
                 }
@@ -60,7 +61,6 @@ class App(QMainWindow):
 
         self.current_model = ""
         self.current_data_source = ""
-        self.text_data = ""
 
         self.AddModel("Spark", SpackUI())
 
@@ -108,6 +108,16 @@ class App(QMainWindow):
             self.SetConfigToModel()
             self.UpdateModelToUI()
 
+    def DataSourceConfig(self):
+        if not self.current_data_source:
+            self.ShowErrorMessage("未选择数据源")
+            return
+        c = self.data_sources[self.current_data_source].GetConfig()
+        if c:
+            self.config["DataSource"][self.current_data_source] = c
+            self.SetConfigToModel()
+            self.UpdateModelToUI()
+
     def AddDocument(self):
         if not self.current_data_source:
             self.ShowErrorMessage("未选择数据源")
@@ -121,6 +131,9 @@ class App(QMainWindow):
         for name, cfg in self.config["Models"].items():
             if name in self.models:
                 self.models[name].SetConfig(cfg)
+        for name, cfg in self.config["DataSource"].items():
+            if name in self.data_sources:
+                self.data_sources[name].SetConfig(cfg)
 
     def AddDataSource(self, name, data_source):
         self.data_sources[name] = data_source
@@ -154,6 +167,9 @@ class App(QMainWindow):
         for name, model in self.models.items():
             self.models_check[name].setText(
                     name+"("+model.Description()+")(已配置)" if model.Configed() else name+"("+model.Description()+")(未配置)")
+        for name, data_source in self.data_sources.items():
+            self.data_sources_check[name].setText(name+"(已配置)" if data_source.Configed() else name+"(未配置)")
+
 
         self.ui.lab_chain.setText('->'.join(self.config["Chain"]))
         self.ui.check_to_exttext.setChecked(self.config["AppendResultToExt"])
@@ -168,8 +184,15 @@ class App(QMainWindow):
                 return
         self.ShowErrorMessage(f"未找到数据源{file_id}")
 
+    def GetTextData(self)->str:
+        ret = ""
+        for document in self.documents:
+            ret += document.GetText() + "\n"
+        ret += self.ui.plain_exttext.toPlainText()
+        return ret
+
+
     def UpdateTextOnUi(self):
-        self.text_data = ""
 
         self.ui.tbl_data_source.setRowCount(0)
         for document in self.documents:
@@ -180,7 +203,6 @@ class App(QMainWindow):
             self.ui.tbl_data_source.setItem(self.ui.tbl_data_source.rowCount() - 1, 1,
                                             QTableWidgetItem(document.Name()))
             tmp_text = document.GetText()
-            self.text_data += tmp_text + "\n"
             self.ui.tbl_data_source.setItem(self.ui.tbl_data_source.rowCount() - 1, 2,
                                             QTableWidgetItem(tmp_text if len(tmp_text) < 16 else tmp_text[:16] + "..."))
 
@@ -194,9 +216,9 @@ class App(QMainWindow):
                     d.ForceGetText()
                 return inner
 
-            def ShowContent(content):
+            def ShowContent(document):
                 def inner():
-                    PlainTextShow(content).exec()
+                    PlainTextShow(document.GetText()).exec()
                 return inner
 
             def RemoveItem(self, id):
@@ -205,7 +227,7 @@ class App(QMainWindow):
                 return inner
 
             btn_refresh.clicked.connect(Refresh(document))
-            btn_show.clicked.connect(ShowContent(tmp_text))
+            btn_show.clicked.connect(ShowContent(document))
             btn_remove.clicked.connect(RemoveItem(self, document.ID()))
             layout = QHBoxLayout()
             layout.addWidget(btn_refresh)
@@ -216,7 +238,6 @@ class App(QMainWindow):
                                                   wgt)
         self.ui.tbl_data_source.resizeRowsToContents()
 
-        self.text_data += self.ui.plain_exttext.toPlainText()
 
     def ChooseFile(self):
         file_dialog = QFileDialog()
@@ -276,8 +297,8 @@ class App(QMainWindow):
             data = self.models[name].Chat(data)
             if data is None:
                 break
-        self.output_sent.emit(
-                name+":\n" + "\n".join(data)+"\n==================\n" if data is not None else "没有找到答案")
+            self.output_sent.emit(
+                    name+":\n" + "\n".join(data)+"\n==================\n" if data is not None else "没有找到答案")
         if self.config["AppendResultToExt"]:
             self.extdata_sent.emit(question+"\n"+'\n'.join(data)+"\n" if data is not None else "没有找到答案")
         self.result_sent.emit(''.join(data) if data is not None else "没有找到答案")
@@ -286,7 +307,7 @@ class App(QMainWindow):
         if not self.CheckValid():
             return
         self.ui.btn_send.setEnabled(False)
-        data = [self.text_data, self.ui.plain_input.toPlainText()]
+        data = [self.GetTextData(), self.ui.plain_input.toPlainText()]
         self.ui.plain_result.clear()
         self.ui.plain_input.clear()
         threading.Thread(target=self.Run, args=[data], daemon=True).start()
