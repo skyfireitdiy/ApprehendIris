@@ -2,7 +2,6 @@ from Document import Document, DocumentType
 from selenium import webdriver
 from newspaper import Article
 import time
-from bs4 import BeautifulSoup
 
 
 class BrowserDocument(Document):
@@ -29,8 +28,10 @@ class BrowserDocument(Document):
             for h in self.browser_inst.window_handles:
                 self.browser_inst.switch_to.window(h)
                 page_source = self.browser_inst.execute_script("return document.documentElement.innerHTML")
-                bs = BeautifulSoup(page_source, 'html.parser')
-                ret += bs.get_text(separator=' ')
+                article = Article("https://example.com", language="zh")
+                article.download(input_html=page_source)
+                article.parse()
+                ret += f"作者：{article.authors}\n标题：{article.title}\n发布时间：{article.publish_date}\n内容：{article.text}\n"
             return ret
         except Exception as e:
             print(e)
@@ -43,3 +44,6 @@ class BrowserDocument(Document):
 
     def Cached(self) -> bool:
         return False
+
+    def Description(self)->str:
+        return "从URL获取数据"

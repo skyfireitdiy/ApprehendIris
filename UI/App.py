@@ -168,7 +168,7 @@ class App(QMainWindow):
             self.models_check[name].setText(
                     name+"("+model.Description()+")(已配置)" if model.Configed() else name+"("+model.Description()+")(未配置)")
         for name, data_source in self.data_sources.items():
-            self.data_sources_check[name].setText(name+"(已配置)" if data_source.Configed() else name+"(未配置)")
+            self.data_sources_check[name].setText(name+"(" + data_source.Description() +")(已配置)" if data_source.Configed() else name+"("+data_source.Description()+")(未配置)")
 
 
         self.ui.lab_chain.setText('->'.join(self.config["Chain"]))

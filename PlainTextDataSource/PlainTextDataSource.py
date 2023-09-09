@@ -15,3 +15,6 @@ class PlainTextDataSource(DataSource):
 
     def Configed(self):
         return True
+
+    def Description(self) -> str:
+        return "输入纯文本"

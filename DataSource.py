@@ -13,3 +13,6 @@ class DataSource:
 
     def Configed(self):
         return False
+
+    def Description(self)->str:
+        return ""

@@ -1,7 +1,8 @@
 from Document import Document
 from DataSource import DataSource
 from BrowserDocument import BrowserDocument
-from UI.LineInput import GetLineInput
+from UI.Choice import GetChoice
+from PyQt6.QtWidgets import QMessageBox
 
 
 class BrowserDataSource(DataSource):
@@ -15,12 +16,13 @@ class BrowserDataSource(DataSource):
 
     def CreateDocument(self) -> Document:
         if not self._configed:
+            QMessageBox.critical(None, "错误", "数据源未配置")
             return None
         return BrowserDocument(self._browser)
 
     def GetConfig(self)->str:
-        browser, ret = GetLineInput("选择浏览器", "选择浏览器","可选浏览器：" + '，'.join(["Chrome", "Edge", "Firefox", "Ie", "Safari", "WebKitGTK", "WPEWebKit"]))
-        if browser and ret:
+        browser = GetChoice("选择浏览器", "浏览器",["Chrome", "Edge", "Firefox", "Ie", "Safari", "WebKitGTK", "WPEWebKit"])
+        if browser:
             self.SetConfig(browser)
             return self._browser
         return None
@@ -28,3 +30,6 @@ class BrowserDataSource(DataSource):
     def SetConfig(self, browser:str):
         self._browser = browser
         self._configed = True
+
+    def Description(self)->str:
+        return  "从" + self._browser + "浏览器获取数据"

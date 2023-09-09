@@ -15,3 +15,4 @@ class UrlDocument(Document):
 
     def Name(self)->str:
         return self._url
+

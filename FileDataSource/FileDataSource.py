@@ -14,7 +14,7 @@ class FileDataSource(DataSource):
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
         file_dialog.setNameFilters(
-            ["文本文件(*.txt)", "PDF文件(*.pdf)", "Word文件(*.docx)"])
+                ["文本文件(*.txt)", "PDF文件(*.pdf)", "Word文件(*.docx)"])
         file_dialog.setViewMode(QFileDialog.ViewMode.Detail)
 
         if file_dialog.exec():
@@ -31,3 +31,6 @@ class FileDataSource(DataSource):
 
     def Configed(self):
         return True
+
+    def Description(self)->str:
+        return "从文件获取数据"
