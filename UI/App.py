@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QPushButton, 
 from PyQt6.QtCore import pyqtSignal
 from TFIDFService import TFIDFService
 from Spark.SparkUI import SpackUI
+from YiYan.YiYanUI import YiYanUI
 from UI.PlainTextShow import PlainTextShow
 from FileDataSource.FileDataSource import FileDataSource
 from UrlDataSource.UrlDataSource import UrlDataSource
@@ -63,6 +64,7 @@ class App(QMainWindow):
         self.current_data_source = ""
 
         self.AddModel("Spark", SpackUI())
+        self.AddModel("YiYan", YiYanUI())
         self.AddModel("TF-IDF", TFIDFService())
 
 
