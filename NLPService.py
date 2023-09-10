@@ -21,7 +21,7 @@ class NLPService(Model):
 
     @staticmethod
     def _MakePrompt(context: str, question: str) -> str:
-        prompt = context + "\n###\n请仅根据以上上下文推理以下问题的答案\n###\n" + question
+        prompt = context + "\n###\n请根据以上上下文推理以下问题的答案\n###\n" + question
         return prompt
 
     def ComputeSimilarity(self, text1, text2):

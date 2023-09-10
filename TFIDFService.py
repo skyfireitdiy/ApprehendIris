@@ -10,14 +10,16 @@ from NLPService import NLPService
 
 class TFIDFService(NLPService):
     def __init__(self):
-        super().__init__(50, 3)
+        super().__init__(70, 3)
 
     def _Words(self, text):
         try:
             sw = stopwords.words('chinese')
+            sw.extend(stopwords.words('english'))
         except Exception as e:
             nltk.download('stopwords')
             sw = stopwords.words('chinese')
+            sw.extend(stopwords.words('english'))
         ws = list(jieba.cut(text, cut_all=False))
         return [w for w in ws if w not in sw]
 
