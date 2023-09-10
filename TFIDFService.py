@@ -21,7 +21,7 @@ class TFIDFService(NLPService):
         ws = list(jieba.cut(text, cut_all=False))
         return [w for w in ws if w not in sw]
 
-    def ComputeCosineSimilarity(self, text1, text2):
+    def ComputeSimilarity(self, text1, text2):
         # 去除停用词
         seg1_filtered = ' '.join(self._Words(text1))
         seg2_filtered = ' '.join(self._Words(text2))

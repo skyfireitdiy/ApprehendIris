@@ -1,7 +1,7 @@
 from Entity import Entity
 
 
-class LLM(Entity):
+class Model(Entity):
     def __init__(self):
         super().__init__()
         self._progress_callback = None

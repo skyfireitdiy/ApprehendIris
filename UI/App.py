@@ -63,11 +63,7 @@ class App(QMainWindow):
         self.current_data_source = ""
 
         self.AddModel("Spark", SpackUI())
-
-        tfidf_service = TFIDFService()
-        tfidf_service.SetLogger(self.log_message_sent.emit)
-        tfidf_service.SetProgressCallback(self.progress_sent.emit)
-        self.AddModel("TF-IDF", tfidf_service)
+        self.AddModel("TF-IDF", TFIDFService())
 
 
         self.AddDataSource("文件", FileDataSource())
@@ -149,8 +145,10 @@ class App(QMainWindow):
         self.ui.layout_data_source.addWidget(check)
         self.UpdateModelToUI()
 
-    def AddModel(self, name, llm):
-        self.models[name] = llm
+    def AddModel(self, name, Model):
+        self.models[name] = Model
+        Model.SetLogger(self.log_message_sent.emit)
+        Model.SetProgressCallback(self.progress_sent.emit)
         check = QRadioButton(name)
 
         def set_current():
