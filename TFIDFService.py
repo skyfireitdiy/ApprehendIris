@@ -40,5 +40,5 @@ class TFIDFService(NLPService):
         return True
 
     def Description(self):
-        return "使用TF-IDF算法计算文本余弦相似度"
+        return "使用TF-IDF计算文本余弦相似度"
 

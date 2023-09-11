@@ -1,7 +1,7 @@
 from Document import Document, DocumentType
 from selenium import webdriver
 from newspaper import Article
-import time
+from bs4 import BeautifulSoup
 
 
 class BrowserDocument(Document):
@@ -31,7 +31,11 @@ class BrowserDocument(Document):
                 article = Article("https://example.com", language="zh")
                 article.download(input_html=page_source)
                 article.parse()
-                ret += f"作者：{article.authors}\n标题：{article.title}\n发布时间：{article.publish_date}\n内容：{article.text}\n"
+                if  article.text:
+                    ret += f"作者：{article.authors}\n标题：{article.title}\n发布时间：{article.publish_date}\n内容：{article.text}\n"
+                else:
+                    bs = BeautifulSoup(page_source, "html.parser")
+                    ret += bs.get_text() + "\n"
             return ret
         except Exception as e:
             print(e)

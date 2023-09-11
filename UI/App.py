@@ -2,6 +2,7 @@ from UI.AppUI import Ui_App
 from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QPushButton, QTableWidgetItem, QHBoxLayout, QWidget, QRadioButton
 from PyQt6.QtCore import pyqtSignal
 from TFIDFService import TFIDFService
+from BERTBaseChineseService import BERTBaseChineseService
 from Spark.SparkUI import SpackUI
 from YiYan.YiYanUI import YiYanUI
 from UI.PlainTextShow import PlainTextShow
@@ -66,6 +67,7 @@ class App(QMainWindow):
         self.AddModel("Spark", SpackUI())
         self.AddModel("YiYan", YiYanUI())
         self.AddModel("TF-IDF", TFIDFService())
+        self.AddModel("BERT-Base-Chinese", BERTBaseChineseService())
 
 
         self.AddDataSource("文件", FileDataSource())

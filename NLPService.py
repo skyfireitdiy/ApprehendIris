@@ -1,5 +1,5 @@
 from Model import Model
-from snownlp import SnowNLP
+import re
 
 class NLPService(Model):
 
@@ -11,7 +11,7 @@ class NLPService(Model):
 
     @staticmethod
     def _Sentences(text: str):
-        return SnowNLP(text).sentences
+        return re.split(r'[。 ]', text)
 
     @staticmethod
     def _MakeContext(sts) -> str:
