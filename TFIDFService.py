@@ -10,7 +10,7 @@ from NLPService import NLPService
 
 class TFIDFService(NLPService):
     def __init__(self):
-        super().__init__(70, 3)
+        super().__init__()
 
     def _Words(self, text):
         try:

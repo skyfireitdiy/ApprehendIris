@@ -28,12 +28,7 @@ class YiYanLLM(Model):
                 return messages
         url = "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions?access_token=" + self.token
         payload = json.dumps({
-            "messages": [
-                {
-                    "role": "user",
-                    "content": '\n'.join(messages)
-                    }
-                ]
+            "messages": messages
             })
         headers = {
                 'Content-Type': 'application/json'

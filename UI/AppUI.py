@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'UI/App.ui'
+# Form implementation generated from reading ui file '.\UI\App.ui'
 #
 # Created by: PyQt6 UI code generator 6.5.2
 #
@@ -81,6 +81,22 @@ class Ui_App(object):
         self.groupBox_3.setObjectName("groupBox_3")
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout(self.groupBox_3)
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
+        self.groupBox_4 = QtWidgets.QGroupBox(parent=self.groupBox_3)
+        self.groupBox_4.setObjectName("groupBox_4")
+        self.horizontalLayout_5 = QtWidgets.QHBoxLayout(self.groupBox_4)
+        self.horizontalLayout_5.setObjectName("horizontalLayout_5")
+        self.check_central = QtWidgets.QRadioButton(parent=self.groupBox_4)
+        self.check_central.setChecked(False)
+        self.check_central.setObjectName("check_central")
+        self.horizontalLayout_5.addWidget(self.check_central)
+        self.check_balanced = QtWidgets.QRadioButton(parent=self.groupBox_4)
+        self.check_balanced.setChecked(True)
+        self.check_balanced.setObjectName("check_balanced")
+        self.horizontalLayout_5.addWidget(self.check_balanced)
+        self.check_dispersed = QtWidgets.QRadioButton(parent=self.groupBox_4)
+        self.check_dispersed.setObjectName("check_dispersed")
+        self.horizontalLayout_5.addWidget(self.check_dispersed)
+        self.horizontalLayout_4.addWidget(self.groupBox_4)
         self.btn_load_config = QtWidgets.QPushButton(parent=self.groupBox_3)
         self.btn_load_config.setObjectName("btn_load_config")
         self.horizontalLayout_4.addWidget(self.btn_load_config)
@@ -168,6 +184,10 @@ class Ui_App(object):
         self.btn_choose_model.setText(_translate("App", "选择模型"))
         self.btn_model_config.setText(_translate("App", "模型配置"))
         self.groupBox_3.setTitle(_translate("App", "全局配置"))
+        self.groupBox_4.setTitle(_translate("App", "预估答案分布"))
+        self.check_central.setText(_translate("App", "集中"))
+        self.check_balanced.setText(_translate("App", "均衡"))
+        self.check_dispersed.setText(_translate("App", "分散"))
         self.btn_load_config.setText(_translate("App", "加载配置"))
         self.btn_save_config.setText(_translate("App", "保存配置"))
         self.groupBox_16.setTitle(_translate("App", "模型链"))

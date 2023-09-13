@@ -17,11 +17,8 @@ class Spark(Model):
         self._domain = "general"   # v1.5版本
         # self._domain = "generalv2"    # v2.0版本
 
-    def Chat(self, message) -> str:
-        return [SparkApi.Request(self._appid, self._api_key, self._api_secret, Spark_url, self._domain, [{
-            "role": "user",
-            "content": '\n'.join(message)
-            }])]
+    def Chat(self, messages) -> str:
+        return [SparkApi.Request(self._appid, self._api_key, self._api_secret, Spark_url, self._domain, messages)]
 
     def GetConfig(self):
         return {

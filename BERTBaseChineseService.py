@@ -11,7 +11,7 @@ model = BertModel.from_pretrained('bert-base-chinese')
 
 class BERTBaseChineseService(NLPService):
     def __init__(self):
-        super().__init__(70, 3)
+        super().__init__()
 
     def ComputeSimilarity(self, text1, text2):
         # 对文本进行分词和编码

@@ -5,6 +5,8 @@ from TFIDFService import TFIDFService
 from BERTBaseChineseService import BERTBaseChineseService
 from Spark.SparkUI import SpackUI
 from YiYan.YiYanUI import YiYanUI
+from OpenAI.OpenAIUI import OpenAIUI
+from NLPService import NLPService, AnswerDistribution
 from UI.PlainTextShow import PlainTextShow
 from FileDataSource.FileDataSource import FileDataSource
 from UrlDataSource.UrlDataSource import UrlDataSource
@@ -41,6 +43,9 @@ class App(QMainWindow):
         self.ui.btn_clear_log.clicked.connect(self.ui.plain_log.clear)
         self.ui.btn_add_document.clicked.connect(self.AddDocument)
         self.ui.btn_config_data_source.clicked.connect(self.DataSourceConfig)
+        self.ui.check_central.clicked.connect(lambda: self.SetAnswerDistribution("Central"))
+        self.ui.check_balanced.clicked.connect(lambda: self.SetAnswerDistribution("Balanced"))
+        self.ui.check_dispersed.clicked.connect(lambda: self.SetAnswerDistribution("Dispersed"))
 
         self.progress_sent.connect(self.ui.progress_bar.setValue)
         self.log_message_sent.connect(self.ui.plain_log.append)
@@ -55,7 +60,8 @@ class App(QMainWindow):
                 "Models": {},
                 "DataSource": {},
                 "Chain": [],
-                "AppendResultToExt": True
+                "AppendResultToExt": True,
+                "AnswerDistribution": "Balanced"
                 }
 
         self.data_sources = {}
@@ -68,6 +74,7 @@ class App(QMainWindow):
         self.AddModel("YiYan", YiYanUI())
         self.AddModel("TF-IDF", TFIDFService())
         self.AddModel("BERT-Base-Chinese", BERTBaseChineseService())
+        self.AddModel("OpenAI", OpenAIUI())
 
 
         self.AddDataSource("文件", FileDataSource())
@@ -75,7 +82,10 @@ class App(QMainWindow):
         self.AddDataSource("纯文本", PlainTextDataSource())
         self.AddDataSource("浏览器", BrowserDataSource())
 
-        self.UpdateModelToUI()
+        self.UpdateConfigToUI()
+
+    def SetAnswerDistribution(self, d):
+        self.config["AnswerDistribution"] = d
 
     def HandleResult(self, result):
         self.ui.btn_send.setEnabled(True)
@@ -91,12 +101,12 @@ class App(QMainWindow):
             self.ShowErrorMessage("模型未配置")
             return
         self.config["Chain"].append(self.current_model)
-        self.UpdateModelToUI()
+        self.UpdateConfigToUI()
 
     def DeleteLastNode(self):
         if len(self.config["Chain"]) > 0:
             self.config["Chain"].pop()
-            self.UpdateModelToUI()
+            self.UpdateConfigToUI()
 
     def ModelConfig(self):
         if not self.current_model:
@@ -106,7 +116,7 @@ class App(QMainWindow):
         if c:
             self.config["Models"][self.current_model] = c
             self.SetConfigToModel()
-            self.UpdateModelToUI()
+            self.UpdateConfigToUI()
 
     def DataSourceConfig(self):
         if not self.current_data_source:
@@ -116,7 +126,7 @@ class App(QMainWindow):
         if c:
             self.config["DataSource"][self.current_data_source] = c
             self.SetConfigToModel()
-            self.UpdateModelToUI()
+            self.UpdateConfigToUI()
 
     def AddDocument(self):
         if not self.current_data_source:
@@ -147,7 +157,7 @@ class App(QMainWindow):
         check.clicked.connect(set_current)
         self.data_sources_check[name] = check
         self.ui.layout_data_source.addWidget(check)
-        self.UpdateModelToUI()
+        self.UpdateConfigToUI()
 
     def AddModel(self, name, Model):
         self.models[name] = Model
@@ -163,9 +173,9 @@ class App(QMainWindow):
         check.clicked.connect(set_current)
         self.models_check[name] = check
         self.ui.layout_models.addWidget(check)
-        self.UpdateModelToUI()
+        self.UpdateConfigToUI()
 
-    def UpdateModelToUI(self):
+    def UpdateConfigToUI(self):
         for name, model in self.models.items():
             self.models_check[name].setText(
                     name+"("+model.Description()+")(已配置)" if model.Configed() else name+"("+model.Description()+")(未配置)")
@@ -175,6 +185,13 @@ class App(QMainWindow):
 
         self.ui.lab_chain.setText('->'.join(self.config["Chain"]))
         self.ui.check_to_exttext.setChecked(self.config["AppendResultToExt"])
+        if self.config["AnswerDistribution"] == "Central":
+            self.ui.check_central.setChecked(True)
+        elif self.config["AnswerDistribution"] == "Balanced":
+            self.ui.check_balanced.setChecked(True)
+        else:
+            self.ui.check_dispersed.setChecked(True)
+        
 
     def RemoveDocument(self, file_id):
         for document in self.documents:
@@ -277,7 +294,7 @@ class App(QMainWindow):
         if file_dialog.exec():
             selected_file = file_dialog.selectedFiles()[0]
             with open(selected_file, "w") as fp:
-                json.dump(self.config, fp, indent=4)
+                json.dump(self.config, fp, indent=4, ensure_ascii=False)
                 self.ShowInfoMessage("保存成功")
 
     def Load(self):
@@ -290,13 +307,21 @@ class App(QMainWindow):
             with open(selected_file, "r") as fp:
                 self.config = json.load(fp)
                 self.SetConfigToModel()
-                self.UpdateModelToUI()
+                self.UpdateConfigToUI()
                 self.ShowInfoMessage("加载成功")
 
     def Run(self, data):
         question = data[1]
         for name in self.config["Chain"]:
-            data = self.models[name].Chat(data)
+            model = self.models[name]
+            if isinstance(model, NLPService):
+                if self.ui.check_central.isChecked():
+                    model.SetAnswerDistribution(AnswerDistribution.Central)
+                elif self.ui.check_balanced.isChecked():
+                    model.SetAnswerDistribution(AnswerDistribution.Balanced)
+                else:
+                    self.SetAnswerDistribution(AnswerDistribution.Dispersed)
+            data = model.Chat(data)
             if data is None:
                 break
             self.output_sent.emit(
