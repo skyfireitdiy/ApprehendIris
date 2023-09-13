@@ -70,10 +70,10 @@ class App(QMainWindow):
         self.current_model = ""
         self.current_data_source = ""
 
-        self.AddModel("Spark", SpackUI())
-        self.AddModel("YiYan", YiYanUI())
         self.AddModel("TF-IDF", TFIDFService())
         self.AddModel("BERT-Base-Chinese", BERTBaseChineseService())
+        self.AddModel("Spark", SpackUI())
+        self.AddModel("YiYan", YiYanUI())
         self.AddModel("OpenAI", OpenAIUI())
 
 
@@ -191,7 +191,7 @@ class App(QMainWindow):
             self.ui.check_balanced.setChecked(True)
         else:
             self.ui.check_dispersed.setChecked(True)
-        
+
 
     def RemoveDocument(self, file_id):
         for document in self.documents:
