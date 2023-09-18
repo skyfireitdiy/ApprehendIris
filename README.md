@@ -76,6 +76,12 @@ Apprehend Iris的软件架构设计采用了层次化架构，顶层核心整合
 
 ### 使用方法
 
+安装依赖：
+
+```bash
+pip install -r requirements.txt
+```
+
 针对想直接使用产品的用户，运行`main.py`文件即可。（需要安装Python 3以及需要的依赖包）
 
 针对开发者，参照 UI/App.py 中的代码即可。
